@@ -1,6 +1,6 @@
 {
   "name": "solidity-patricia-tree",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Patricia Tree solidity implemenation",
   "directories": {
     "test": "test"
