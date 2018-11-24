@@ -236,5 +236,45 @@ contract('PatriciaTree', async ([_, primary, nonPrimary]) => {
       })
     })
 
+    describe('getNonInclusionProof()', async () => {
+      let items = { key1: 'value1', key2: 'value2', key3: 'value3' }
+      it('should return proof data when the key does not exist', async () => {
+        for (const key of Object.keys(items)) {
+          await tree.insert(key, items[key], { from: primary })
+        }
+        await tree.getNonInclusionProof('key4')
+      })
+      it('should not return data when the key does exist', async () => {
+        for (const key of Object.keys(items)) {
+          await tree.insert(key, items[key], { from: primary })
+        }
+        try {
+          await tree.getNonInclusionProof('key1')
+          assert.fail('Did not reverted')
+        } catch (e) {
+          assert.ok('Reverted successfully')
+        }
+      })
+    })
+
+    describe('verifyNonInclusionProof()', async () => {
+      it('should be passed when we use correct proof data', async () => {
+        let items = { key1: 'value1', key2: 'value2', key3: 'value3' }
+        for (const key of Object.keys(items)) {
+          await tree.insert(key, items[key], { from: primary })
+        }
+        let rootHash = await tree.getRootHash()
+        let [potentialSiblingLabel, potentialSiblingValue, branchMask, siblings] = await tree.getNonInclusionProof('key4')
+        await tree.verifyNonInclusionProof(rootHash, 'key4', potentialSiblingLabel, potentialSiblingValue, branchMask, siblings)
+        for (const key of Object.keys(items)) {
+          try {
+            await tree.verifyNonInclusionProof(rootHash, key, potentialSiblingLabel, potentialSiblingValue, branchMask, siblings)
+            assert.fail('Did not reverted')
+          } catch (e) {
+            assert.ok('Reverted successfully')
+          }
+        }
+      })
+    })
   })
 })

@@ -10,6 +10,10 @@ contract PatriciaTreeImplementation {
     constructor () public {
     }
 
+    function insert(bytes key, bytes value) public {
+        tree.insert(key, value);
+    }
+
     function get(bytes key) public view returns (bytes) {
         return tree.get(key);
     }
@@ -42,12 +46,21 @@ contract PatriciaTreeImplementation {
         return tree.getProof(key);
     }
 
+    function getNonInclusionProof(bytes key) public view returns (
+        bytes32 leafLabel,
+        bytes32 leafNode,
+        uint branchMask,
+        bytes32[] _siblings
+    ) {
+        return tree.getNonInclusionProof(key);
+    }
+
     function verifyProof(bytes32 rootHash, bytes key, bytes value, uint branchMask, bytes32[] siblings) public pure {
         PatriciaTree.verifyProof(rootHash, key, value, branchMask, siblings);
     }
 
-    function insert(bytes key, bytes value) public {
-        tree.insert(key, value);
+    function verifyNonInclusionProof(bytes32 rootHash, bytes key, bytes32 leafLabel, bytes32 leafNode, uint branchMask, bytes32[] siblings) public pure {
+        PatriciaTree.verifyNonInclusionProof(rootHash, key, leafLabel, leafNode, branchMask, siblings);
     }
 }
 
@@ -134,7 +147,7 @@ contract PatriciaTreeMerkleProof {
     }
 
     function seal() public onlyFor(Status.OPENED) {
-//        require(_verifyEdge(originalRootEdge));
+        //        require(_verifyEdge(originalRootEdge));
         tree.rootEdge = originalRootEdge;
         tree.root = PatriciaTree.edgeHash(tree.rootEdge);
         _changeStatus(Status.ONGOING);
