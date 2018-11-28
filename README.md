@@ -2,7 +2,7 @@
 
 ## Credits 
 
-This is a rewritten version of [Christian Reitwießner](https://github.com/chriseth)'s [patricia-tree](https://github.com/chriseth/patricia-tree) to use his patricia tree implementation as a solidity library through npm.
+This is a rewritten version of [Christian Reitwießner](https://github.com/chriseth)'s [patricia-trie](https://github.com/chriseth/patricia-trie) to use his patricia tree implementation as a solidity library through npm.
 
 
 ##### latest released version
