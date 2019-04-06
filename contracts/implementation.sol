@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity >=0.5.0 <0.6.0;
 
 import {D} from "./data.sol";
 import {PatriciaTree} from "./tree.sol";
@@ -10,23 +10,23 @@ contract PatriciaTreeImplementation {
     constructor () public {
     }
 
-    function insert(bytes key, bytes value) public {
+    function insert(bytes memory key, bytes memory value) public {
         tree.insert(key, value);
     }
 
-    function get(bytes key) public view returns (bytes) {
+    function get(bytes memory key) public view returns (bytes memory) {
         return tree.get(key);
     }
 
-    function safeGet(bytes key) public view returns (bytes) {
+    function safeGet(bytes memory key) public view returns (bytes memory) {
         return tree.safeGet(key);
     }
 
-    function doesInclude(bytes key) public view returns (bool) {
+    function doesInclude(bytes memory key) public view returns (bool) {
         return tree.doesInclude(key);
     }
 
-    function getValue(bytes32 hash) public view returns (bytes) {
+    function getValue(bytes32 hash) public view returns (bytes memory) {
         return tree.values[hash];
     }
 
@@ -42,24 +42,24 @@ contract PatriciaTreeImplementation {
         return tree.getRootEdge();
     }
 
-    function getProof(bytes key) public view returns (uint branchMask, bytes32[] _siblings) {
+    function getProof(bytes memory key) public view returns (uint branchMask, bytes32[] memory _siblings) {
         return tree.getProof(key);
     }
 
-    function getNonInclusionProof(bytes key) public view returns (
+    function getNonInclusionProof(bytes memory key) public view returns (
         bytes32 leafLabel,
         bytes32 leafNode,
         uint branchMask,
-        bytes32[] _siblings
+        bytes32[] memory _siblings
     ) {
         return tree.getNonInclusionProof(key);
     }
 
-    function verifyProof(bytes32 rootHash, bytes key, bytes value, uint branchMask, bytes32[] siblings) public pure {
+    function verifyProof(bytes32 rootHash, bytes memory key, bytes memory value, uint branchMask, bytes32[] memory siblings) public pure {
         PatriciaTree.verifyProof(rootHash, key, value, branchMask, siblings);
     }
 
-    function verifyNonInclusionProof(bytes32 rootHash, bytes key, bytes32 leafLabel, bytes32 leafNode, uint branchMask, bytes32[] siblings) public pure {
+    function verifyNonInclusionProof(bytes32 rootHash, bytes memory key, bytes32 leafLabel, bytes32 leafNode, uint branchMask, bytes32[] memory siblings) public pure {
         PatriciaTree.verifyNonInclusionProof(rootHash, key, leafLabel, leafNode, branchMask, siblings);
     }
 }
@@ -112,7 +112,7 @@ contract PatriciaTreeMerkleProof {
         targetRoot = PatriciaTree.edgeHash(targetRootEdge);
     }
 
-    function insert(bytes key, bytes value) public {
+    function insert(bytes memory key, bytes memory value) public {
         bytes32 k = keccak256(value);
         committedValues[k] = true;
         tree.insert(key, value);
@@ -140,7 +140,7 @@ contract PatriciaTreeMerkleProof {
         tree.nodes[nodeHash].children[1] = e1;
     }
 
-    function commitValue(bytes value) public onlyFor(Status.OPENED) {
+    function commitValue(bytes memory value) public onlyFor(Status.OPENED) {
         bytes32 k = keccak256(value);
         committedValues[k] = true;
         tree.values[k] = value;
@@ -185,7 +185,7 @@ contract PatriciaTreeMerkleProof {
         return true;
     }
 
-    function _isLeaf(D.Edge _edge) internal view returns (bool) {
+    function _isLeaf(D.Edge memory _edge) internal view returns (bool) {
         return (tree.nodes[_edge.node].children[0].node == 0 && tree.nodes[_edge.node].children[1].node == 0);
     }
 

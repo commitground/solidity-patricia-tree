@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity >=0.5.0 <0.6.0;
 
 import {D} from "./data.sol";
 import {Utils} from "./utils.sol";
@@ -21,18 +21,18 @@ library PatriciaTree {
         D.Edge rootEdge;
     }
 
-    function get(Tree storage tree, bytes key) internal view returns (bytes) {
+    function get(Tree storage tree, bytes memory key) internal view returns (bytes memory) {
         return getValue(tree, _findNode(tree, key));
     }
 
-    function safeGet(Tree storage tree, bytes key) internal view returns (bytes value) {
+    function safeGet(Tree storage tree, bytes memory key) internal view returns (bytes memory value) {
         bytes32 valueHash = _findNode(tree, key);
         require(valueHash != bytes32(0));
         value = getValue(tree, valueHash);
         require(valueHash == keccak256(value));
     }
 
-    function doesInclude(Tree storage tree, bytes key) internal view returns (bool) {
+    function doesInclude(Tree storage tree, bytes memory key) internal view returns (bool) {
         return doesIncludeHashedKey(tree, keccak256(key));
     }
 
@@ -41,7 +41,7 @@ library PatriciaTree {
         return (valueHash != bytes32(0));
     }
 
-    function getValue(Tree storage tree, bytes32 valueHash) internal view returns (bytes) {
+    function getValue(Tree storage tree, bytes32 valueHash) internal view returns (bytes memory) {
         return tree.values[valueHash];
     }
 
@@ -76,11 +76,11 @@ library PatriciaTree {
     //  - uint branchMask - bitmask with high bits at the positions in the key
     //                    where we have branch nodes (bit in key denotes direction)
     //  - bytes32[] hashes - hashes of sibling edges
-    function getProof(Tree storage tree, bytes key) internal view returns (uint branchMask, bytes32[] _siblings) {
+    function getProof(Tree storage tree, bytes memory key) internal view returns (uint branchMask, bytes32[] memory _siblings) {
         return getProofWithHashedKey(tree, keccak256(key));
     }
 
-    function getProofWithHashedKey(Tree storage tree, bytes32 hashedKey) internal view returns (uint branchMask, bytes32[] _siblings) {
+    function getProofWithHashedKey(Tree storage tree, bytes32 hashedKey) internal view returns (uint branchMask, bytes32[] memory _siblings) {
         D.Label memory k = D.Label(hashedKey, 256);
         D.Edge memory e = tree.rootEdge;
         bytes32[256] memory siblings;
@@ -113,11 +113,11 @@ library PatriciaTree {
         }
     }
 
-    function getNonInclusionProof(Tree storage tree, bytes key) internal view returns (
+    function getNonInclusionProof(Tree storage tree, bytes memory key) internal view returns (
         bytes32 potentialSiblingLabel,
         bytes32 potentialSiblingValue,
         uint branchMask,
-        bytes32[] _siblings
+        bytes32[] memory _siblings
     ) {
         return getNonInclusionProofWithHashedKey(tree, keccak256(key));
     }
@@ -126,7 +126,7 @@ library PatriciaTree {
         bytes32 potentialSiblingLabel,
         bytes32 potentialSiblingValue,
         uint branchMask,
-        bytes32[] _siblings
+        bytes32[] memory _siblings
     ){
         uint length;
         uint numSiblings;
@@ -170,7 +170,7 @@ library PatriciaTree {
         }
     }
 
-    function verifyProof(bytes32 rootHash, bytes key, bytes value, uint branchMask, bytes32[] siblings) public pure {
+    function verifyProof(bytes32 rootHash, bytes memory key, bytes memory value, uint branchMask, bytes32[] memory siblings) public pure {
         D.Label memory k = D.Label(keccak256(key), 256);
         D.Edge memory e;
         e.node = keccak256(value);
@@ -189,7 +189,7 @@ library PatriciaTree {
         require(rootHash == edgeHash(e));
     }
 
-    function verifyNonInclusionProof(bytes32 rootHash, bytes key, bytes32 potentialSiblingLabel, bytes32 potentialSiblingValue, uint branchMask, bytes32[] siblings) public pure {
+    function verifyNonInclusionProof(bytes32 rootHash, bytes memory key, bytes32 potentialSiblingLabel, bytes32 potentialSiblingValue, uint branchMask, bytes32[] memory siblings) public pure {
         D.Label memory k = D.Label(keccak256(key), 256);
         D.Edge memory e;
         for (uint i = 0; branchMask != 0; i++) {
@@ -213,7 +213,7 @@ library PatriciaTree {
     }
 
     // TODO also return the proof
-    function insert(Tree storage tree, bytes key, bytes value) internal {
+    function insert(Tree storage tree, bytes memory key, bytes memory value) internal {
         D.Label memory k = D.Label(keccak256(key), 256);
         bytes32 valueHash = keccak256(value);
         tree.values[valueHash] = value;
@@ -233,21 +233,26 @@ library PatriciaTree {
         tree.rootEdge = e;
     }
 
-    function _insertAtNode(Tree storage tree, bytes32 nodeHash, D.Label key, bytes32 value) private returns (bytes32) {
-        require(key.length > 1);
+    function _insertAtNode(
+        Tree storage tree, 
+        bytes32 nodeHash, 
+        D.Label memory key, 
+        bytes32 value
+    ) private returns (bytes32) {
+        require(key.length > 1, "Bad key");
         D.Node memory n = tree.nodes[nodeHash];
-        uint head;
-        D.Label memory tail;
-        (head, tail) = Utils.chopFirstBit(key);
+        (uint256 head, D.Label memory tail) = Utils.chopFirstBit(key);
         n.children[head] = _insertAtEdge(tree, n.children[head], tail, value);
         return _replaceNode(tree, nodeHash, n);
     }
 
-    function _insertAtEdge(Tree storage tree, D.Edge e, D.Label key, bytes32 value) private returns (D.Edge) {
-        require(key.length >= e.label.length);
-        D.Label memory prefix;
-        D.Label memory suffix;
-        (prefix, suffix) = Utils.splitCommonPrefix(key, e.label);
+    function _insertAtEdge(
+        Tree storage tree, 
+        D.Edge memory e, 
+        D.Label memory key, bytes32 value
+    ) private returns (D.Edge memory) {
+        require(key.length >= e.label.length, "Key lenght mismatch label lenght");
+        (D.Label memory prefix, D.Label memory suffix) = Utils.splitCommonPrefix(key, e.label);
         bytes32 newNodeHash;
         if (suffix.length == 0) {
             // Full match with the key, update operation
@@ -257,9 +262,7 @@ library PatriciaTree {
             newNodeHash = _insertAtNode(tree, e.node, suffix, value);
         } else {
             // Mismatch, so let us create a new branch node.
-            uint head;
-            D.Label memory tail;
-            (head, tail) = Utils.chopFirstBit(suffix);
+            (uint256 head, D.Label memory tail) = Utils.chopFirstBit(suffix);
             D.Node memory branchNode;
             branchNode.children[head] = D.Edge(value, tail);
             branchNode.children[1 - head] = D.Edge(e.node, Utils.removePrefix(e.label, prefix.length + 1));
@@ -275,12 +278,16 @@ library PatriciaTree {
         return h;
     }
 
-    function _replaceNode(Tree storage tree, bytes32 oldHash, D.Node memory n) private returns (bytes32 newHash) {
+    function _replaceNode(
+        Tree storage tree, 
+        bytes32 oldHash, 
+        D.Node memory n
+    ) private returns (bytes32 newHash) {
         delete tree.nodes[oldHash];
         return _insertNode(tree, n);
     }
 
-    function _findNode(Tree storage tree, bytes key) private view returns (bytes32) {
+    function _findNode(Tree storage tree, bytes memory key) private view returns (bytes32) {
         return _findNodeWithHashedKey(tree, keccak256(key));
     }
 
@@ -293,20 +300,16 @@ library PatriciaTree {
         }
     }
 
-    function _findAtNode(Tree storage tree, bytes32 nodeHash, D.Label key) private view returns (bytes32) {
+    function _findAtNode(Tree storage tree, bytes32 nodeHash, D.Label memory key) private view returns (bytes32) {
         require(key.length > 1);
         D.Node memory n = tree.nodes[nodeHash];
-        uint head;
-        D.Label memory tail;
-        (head, tail) = Utils.chopFirstBit(key);
+        (uint head, D.Label memory tail) = Utils.chopFirstBit(key);
         return _findAtEdge(tree, n.children[head], tail);
     }
 
-    function _findAtEdge(Tree storage tree, D.Edge e, D.Label key) private view returns (bytes32){
+    function _findAtEdge(Tree storage tree, D.Edge memory e, D.Label memory key) private view returns (bytes32){
         require(key.length >= e.label.length);
-        D.Label memory prefix;
-        D.Label memory suffix;
-        (prefix, suffix) = Utils.splitCommonPrefix(key, e.label);
+        (D.Label memory prefix, D.Label memory suffix) = Utils.splitCommonPrefix(key, e.label);
         if (suffix.length == 0) {
             // Full match with the key, update operation
             return e.node;
